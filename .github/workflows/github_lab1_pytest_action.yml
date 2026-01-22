@@ -29,10 +29,10 @@ jobs:
           python-version: 3.8
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: pip install -r labs/Github_labs/Lab1/requirements.txt
 
       - name: Run tests and generate XML report
-        run: pytest --junitxml=pytest-report.xml
+        run: pytest Labs/Github_Labs/Lab1/test/test_pytest.py --junitxml=pytest-report.xml
         continue-on-error: false
 
       - name: Upload test results
