@@ -5,8 +5,8 @@ on:
     branches:
       - main
       - "releases/**" # Filters to run only when a push to a branch that matches the branches filter occurs
-    branches-ignore:
-      - dev
+    # branches-ignore:
+    #   - dev
 
   label:
     types:
