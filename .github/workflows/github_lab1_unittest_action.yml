@@ -22,7 +22,7 @@ jobs:
         run: pip install -r labs/Github_labs/Lab1/requirements.txt
 
       - name: Run unittests
-        run: python -m unittest Labs/Github_labs/Lab1/test/test_unittest.py
+        run: python -m unittest labs/Github_labs/Lab1/test/test_unittest.py
 
       - name: Notify on success
         if: success()
