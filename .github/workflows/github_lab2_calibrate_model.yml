@@ -5,40 +5,40 @@ on:
     workflows: ["Train and Evaluate Wine Quality Model"]
     types:
       - completed
-  workflow_dispatch:  # Allow manual trigger
+  workflow_dispatch: # Allow manual trigger
 
 jobs:
   calibrate-model:
     runs-on: ubuntu-latest
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-      
+
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.9'
-      
+          python-version: "3.9"
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-      
+
       - name: Pull latest changes
         run: |
           git pull origin main
-      
+
       - name: Calibrate model
         run: |
           echo "Starting model calibration..."
           python src/calibrate_model.py
-      
+
       - name: Upload calibration artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: calibrated-model
           path: |
@@ -46,27 +46,27 @@ jobs:
             metrics/calibration*.json
             metrics/calibration*.png
           retention-days: 30
-      
+
       - name: Commit and push calibrated model
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           git add models/ metrics/ || true
-          git diff --quiet && git diff --staged --quiet || (git commit -m "🔧 Automated model calibration [skip ci]" && git push)
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Automated model calibration [skip ci]" && git push)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      
+
       - name: Calibration Summary
         run: |
           echo "=============================================="
-          echo "🎉 Calibration Pipeline Completed!"
+          echo "Calibration Pipeline Completed!"
           echo "=============================================="
           echo ""
-          echo "📈 Check the metrics/ directory for:"
+          echo "Check the metrics/ directory for:"
           echo "   - Calibration metrics (JSON)"
           echo "   - Calibration curve (PNG)"
           echo ""
-          echo "💾 Calibrated model saved in models/ directory"
+          echo "Calibrated model saved in models/ directory"
           echo ""
-          echo "🔍 View full logs in the Actions tab"
+          echo "View full logs in the Actions tab"
           echo "=============================================="

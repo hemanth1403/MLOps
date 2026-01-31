@@ -59,22 +59,22 @@ jobs:
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           git add models/ metrics/ data/ || true
-          git diff --quiet && git diff --staged --quiet || (git commit -m "🤖 Automated model training and evaluation [skip ci]" && git push)
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Automated model training and evaluation [skip ci]" && git push)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Training Summary
         run: |
           echo "=============================================="
-          echo "🎉 Training Pipeline Completed Successfully!"
+          echo "Training Pipeline Completed Successfully!"
           echo "=============================================="
           echo ""
-          echo "📊 Check the metrics/ directory for:"
+          echo "Check the metrics/ directory for:"
           echo "   - Evaluation results (JSON)"
           echo "   - Confusion matrix (PNG)"
           echo "   - Feature importance (PNG)"
           echo ""
-          echo "💾 Models saved in models/ directory"
+          echo "Models saved in models/ directory"
           echo ""
-          echo "🔍 View full logs in the Actions tab"
+          echo "View full logs in the Actions tab"
           echo "=============================================="
