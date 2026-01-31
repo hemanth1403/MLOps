@@ -42,9 +42,14 @@ jobs:
         with:
           name: calibrated-model
           path: |
-            models/*calibrated*.pkl
-            metrics/calibration*.json
-            metrics/calibration*.png
+            # models/*calibrated*.pkl
+            # metrics/calibration*.json
+            # metrics/calibration*.png
+            labs/Github_labs/Lab2/models/*calibrated*.pkl
+            labs/Github_labs/Lab2/models/*base*.pkl
+            labs/Github_labs/Lab2/models/*calibrator*.pkl
+            labs/Github_labs/Lab2/metrics/calibration*.json
+            labs/Github_labs/Lab2/metrics/calibration*.png
           retention-days: 30
 
       - name: Commit and push calibrated model
