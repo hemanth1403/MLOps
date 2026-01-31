@@ -51,8 +51,8 @@ jobs:
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git add models/ metrics/ || true
-          git diff --quiet && git diff --staged --quiet || (git commit -m "Automated model calibration [skip ci]" && git push)
+          git add labs/Github_labs/Lab2/models/ labs/Github_labs/Lab2/metrics/ || true
+          git diff --quiet && git diff --staged --quiet || (git commit -m "🔧 Automated model calibration [skip ci]" && git push)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
