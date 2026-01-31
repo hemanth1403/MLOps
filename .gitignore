@@ -1,1 +1,11 @@
 labs/Github_labs/Lab1/lab_01/
+labs/Github_labs/Lab2/lab_02/
+.DS_Store
+*.log
+data/*.csv
+data/*.json
+models/*.pkl
+models/*.joblib
+metrics/*.png
+metrics/*.json
+__pycache__/

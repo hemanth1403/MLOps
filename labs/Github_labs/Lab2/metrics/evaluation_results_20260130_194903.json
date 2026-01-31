@@ -1,0 +1,57 @@
+{
+    "metrics": {
+        "accuracy": 0.803125,
+        "precision": 0.8417721518987342,
+        "recall": 0.7777777777777778,
+        "f1_score": 0.8085106382978723,
+        "roc_auc": 0.8764472703010322,
+        "timestamp": "2026-01-30 19:52:24"
+    },
+    "feature_importance": [
+        {
+            "feature": "alcohol",
+            "importance": 0.31529771794963246
+        },
+        {
+            "feature": "sulphates",
+            "importance": 0.1493742492450853
+        },
+        {
+            "feature": "volatile acidity",
+            "importance": 0.11452067216628158
+        },
+        {
+            "feature": "total sulfur dioxide",
+            "importance": 0.10967066783041864
+        },
+        {
+            "feature": "chlorides",
+            "importance": 0.06400067670468429
+        },
+        {
+            "feature": "fixed acidity",
+            "importance": 0.053868880443550406
+        },
+        {
+            "feature": "density",
+            "importance": 0.05272605194572308
+        },
+        {
+            "feature": "pH",
+            "importance": 0.05025669277147808
+        },
+        {
+            "feature": "citric acid",
+            "importance": 0.035218335338056614
+        },
+        {
+            "feature": "residual sugar",
+            "importance": 0.03259411194238753
+        },
+        {
+            "feature": "free sulfur dioxide",
+            "importance": 0.022471943662702002
+        }
+    ],
+    "model_timestamp": "20260130_194903"
+}
