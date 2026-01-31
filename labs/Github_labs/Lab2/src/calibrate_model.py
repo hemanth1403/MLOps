@@ -21,7 +21,11 @@ def load_latest_model():
     Returns:
         Tuple of (model, timestamp)
     """
-    models_dir = 'models'
+    # models_dir = 'models'
+    import os
+    models_dir = os.path.join(os.getcwd(), 'models')
+    # Or
+    # models_dir = '/home/runner/work/MLOps/MLOps/labs/Github_labs/Lab2/models'
     
     # Find latest non-calibrated model file
     model_files = [f for f in os.listdir(models_dir) 
