@@ -1,0 +1,14 @@
+{
+    "original_model_timestamp": "20260130_194903",
+    "calibration_timestamp": "20260131_030302",
+    "calibration_method": "isotonic_regression",
+    "metrics": {
+        "brier_score_original": 0.14216349842998524,
+        "brier_score_calibrated": 0.12743450738829487,
+        "brier_improvement": 0.01472899104169037,
+        "log_loss_original": 0.4408443892990916,
+        "log_loss_calibrated": 0.3862536381347421,
+        "log_loss_improvement": 0.05459075116434947,
+        "timestamp": "2026-01-31 03:03:02"
+    }
+}
