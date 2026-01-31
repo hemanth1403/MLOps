@@ -3,7 +3,7 @@ name: Train and Evaluate Wine Quality Model
 on:
   push:
     branches:
-      - main
+      - Main
   workflow_dispatch: # Also allow manual trigger
 
 jobs:
