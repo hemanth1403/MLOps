@@ -8,10 +8,10 @@ name: Docker CI/CD Pipeline
 
 on:
   push:
-    branches: [main]
+    branches: [Main]
   pull_request:
-    branches: [main]
-  workflow_dispatch:  # Manual trigger
+    branches: [Main]
+  workflow_dispatch: # Manual trigger
 
 env:
   IMAGE_NAME: wine-classifier
@@ -38,7 +38,7 @@ jobs:
 
       - name: Start container
         run: |
-          echo "🚀 Starting container..."
+          echo "Starting container..."
           docker run -d --name wine-test -p 8000:8000 ${{ env.IMAGE_NAME }}:latest
           echo "⏳ Waiting for server to start..."
           sleep 15
@@ -47,44 +47,44 @@ jobs:
         run: |
           STATUS=$(docker inspect -f '{{.State.Running}}' wine-test)
           if [ "$STATUS" != "true" ]; then
-            echo "❌ Container is not running!"
+            echo "Container is not running!"
             docker logs wine-test
             exit 1
           fi
-          echo "✅ Container is running"
+          echo "Container is running"
 
       - name: Test health endpoint
         run: |
           echo "🏥 Testing /health endpoint..."
           RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/health)
           if [ "$RESPONSE" != "200" ]; then
-            echo "❌ Health check failed with status: $RESPONSE"
+            echo "Health check failed with status: $RESPONSE"
             docker logs wine-test
             exit 1
           fi
-          echo "✅ Health endpoint returned 200"
+          echo "Health endpoint returned 200"
           curl -s http://localhost:8000/health | python3 -m json.tool
 
       - name: Test metrics endpoint
         run: |
-          echo "📊 Testing /metrics endpoint..."
+          echo "Testing /metrics endpoint..."
           RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/metrics)
           if [ "$RESPONSE" != "200" ]; then
             echo "❌ Metrics endpoint failed with status: $RESPONSE"
             exit 1
           fi
-          echo "✅ Metrics endpoint returned 200"
+          echo "Metrics endpoint returned 200"
           curl -s http://localhost:8000/metrics | python3 -m json.tool
 
       - name: Test prediction endpoint
         run: |
-          echo "🍷 Testing /predict endpoint..."
+          echo "Testing /predict endpoint..."
           RESPONSE=$(curl -s -X POST http://localhost:8000/predict \
             -H "Content-Type: application/json" \
             -d '{"features": [14.23, 1.71, 2.43, 15.6, 127, 2.80, 3.06, 0.28, 2.29, 5.64, 1.04, 3.92, 1065]}')
-          
+
           echo "Response: $RESPONSE"
-          
+
           # Verify prediction contains expected fields
           echo "$RESPONSE" | python3 -c "
           import sys, json
@@ -93,7 +93,7 @@ jobs:
           assert 'confidence' in data, 'Missing confidence'
           assert 'probabilities' in data, 'Missing probabilities'
           assert data['confidence'] > 0, 'Confidence should be positive'
-          print(f\"✅ Prediction: {data['predicted_class']} ({data['confidence']}% confidence)\")
+          print(f\"Prediction: {data['predicted_class']} ({data['confidence']}% confidence)\")
           "
 
       - name: Test home page
@@ -101,15 +101,15 @@ jobs:
           echo "🌐 Testing home page..."
           RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/)
           if [ "$RESPONSE" != "200" ]; then
-            echo "❌ Home page failed with status: $RESPONSE"
+            echo "Home page failed with status: $RESPONSE"
             exit 1
           fi
-          echo "✅ Home page returned 200"
+          echo "Home page returned 200"
 
       - name: Print container logs
         if: always()
         run: |
-          echo "📋 Container logs:"
+          echo "Container logs:"
           docker logs wine-test
 
       - name: Cleanup
@@ -121,7 +121,7 @@ jobs:
       - name: Save Docker image as artifact
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         run: |
-          echo "💾 Saving Docker image..."
+          echo "Saving Docker image..."
           docker save ${{ env.IMAGE_NAME }}:latest | gzip > wine-classifier-image.tar.gz
 
       - name: Upload image artifact
@@ -160,12 +160,12 @@ jobs:
                        -t ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }} .
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
-          echo "✅ Pushed to Docker Hub"
+          echo "Pushed to Docker Hub"
 
       - name: Skip push (no credentials)
         if: env.DOCKERHUB_USERNAME == ''
         env:
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
         run: |
-          echo "⚠️ Docker Hub credentials not configured — skipping push"
+          echo "Docker Hub credentials not configured — skipping push"
           echo "To enable, add DOCKERHUB_USERNAME and DOCKERHUB_TOKEN to repository secrets"
