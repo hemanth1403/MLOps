@@ -21,6 +21,9 @@ jobs:
   # ─── Job 1: Build and Test ─────────────────────────────────
   build-and-test:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: labs/Docker_labs/Lab2
 
     steps:
       - name: Checkout repository
