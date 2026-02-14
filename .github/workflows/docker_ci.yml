@@ -1,0 +1,171 @@
+# ============================================================
+# Wine Quality Classifier — CI/CD Pipeline
+# Builds the Docker image, runs the container, tests API
+# endpoints, and optionally pushes to Docker Hub.
+# ============================================================
+
+name: Docker CI/CD Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:  # Manual trigger
+
+env:
+  IMAGE_NAME: wine-classifier
+  IMAGE_TAG: ${{ github.sha }}
+
+jobs:
+  # ─── Job 1: Build and Test ─────────────────────────────────
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        run: |
+          echo "🔨 Building Docker image..."
+          docker build -t ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }} .
+          docker tag ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }} ${{ env.IMAGE_NAME }}:latest
+          echo "✅ Image built successfully"
+
+      - name: Start container
+        run: |
+          echo "🚀 Starting container..."
+          docker run -d --name wine-test -p 8000:8000 ${{ env.IMAGE_NAME }}:latest
+          echo "⏳ Waiting for server to start..."
+          sleep 15
+
+      - name: Check container is running
+        run: |
+          STATUS=$(docker inspect -f '{{.State.Running}}' wine-test)
+          if [ "$STATUS" != "true" ]; then
+            echo "❌ Container is not running!"
+            docker logs wine-test
+            exit 1
+          fi
+          echo "✅ Container is running"
+
+      - name: Test health endpoint
+        run: |
+          echo "🏥 Testing /health endpoint..."
+          RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/health)
+          if [ "$RESPONSE" != "200" ]; then
+            echo "❌ Health check failed with status: $RESPONSE"
+            docker logs wine-test
+            exit 1
+          fi
+          echo "✅ Health endpoint returned 200"
+          curl -s http://localhost:8000/health | python3 -m json.tool
+
+      - name: Test metrics endpoint
+        run: |
+          echo "📊 Testing /metrics endpoint..."
+          RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/metrics)
+          if [ "$RESPONSE" != "200" ]; then
+            echo "❌ Metrics endpoint failed with status: $RESPONSE"
+            exit 1
+          fi
+          echo "✅ Metrics endpoint returned 200"
+          curl -s http://localhost:8000/metrics | python3 -m json.tool
+
+      - name: Test prediction endpoint
+        run: |
+          echo "🍷 Testing /predict endpoint..."
+          RESPONSE=$(curl -s -X POST http://localhost:8000/predict \
+            -H "Content-Type: application/json" \
+            -d '{"features": [14.23, 1.71, 2.43, 15.6, 127, 2.80, 3.06, 0.28, 2.29, 5.64, 1.04, 3.92, 1065]}')
+          
+          echo "Response: $RESPONSE"
+          
+          # Verify prediction contains expected fields
+          echo "$RESPONSE" | python3 -c "
+          import sys, json
+          data = json.load(sys.stdin)
+          assert 'predicted_class' in data, 'Missing predicted_class'
+          assert 'confidence' in data, 'Missing confidence'
+          assert 'probabilities' in data, 'Missing probabilities'
+          assert data['confidence'] > 0, 'Confidence should be positive'
+          print(f\"✅ Prediction: {data['predicted_class']} ({data['confidence']}% confidence)\")
+          "
+
+      - name: Test home page
+        run: |
+          echo "🌐 Testing home page..."
+          RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/)
+          if [ "$RESPONSE" != "200" ]; then
+            echo "❌ Home page failed with status: $RESPONSE"
+            exit 1
+          fi
+          echo "✅ Home page returned 200"
+
+      - name: Print container logs
+        if: always()
+        run: |
+          echo "📋 Container logs:"
+          docker logs wine-test
+
+      - name: Cleanup
+        if: always()
+        run: |
+          docker stop wine-test || true
+          docker rm wine-test || true
+
+      - name: Save Docker image as artifact
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: |
+          echo "💾 Saving Docker image..."
+          docker save ${{ env.IMAGE_NAME }}:latest | gzip > wine-classifier-image.tar.gz
+
+      - name: Upload image artifact
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-image
+          path: wine-classifier-image.tar.gz
+          retention-days: 7
+
+  # ─── Job 2: Push to Docker Hub (optional, on main only) ───
+  push-to-registry:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Login to Docker Hub
+        if: env.DOCKERHUB_USERNAME != ''
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push
+        if: env.DOCKERHUB_USERNAME != ''
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+        run: |
+          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest \
+                       -t ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }} .
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+          echo "✅ Pushed to Docker Hub"
+
+      - name: Skip push (no credentials)
+        if: env.DOCKERHUB_USERNAME == ''
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+        run: |
+          echo "⚠️ Docker Hub credentials not configured — skipping push"
+          echo "To enable, add DOCKERHUB_USERNAME and DOCKERHUB_TOKEN to repository secrets"

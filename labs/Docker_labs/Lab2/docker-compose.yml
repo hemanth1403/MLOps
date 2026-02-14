@@ -1,0 +1,47 @@
+services:
+  # Service 1: Train the wine quality model
+  model-training:
+    image: python:3.10-slim
+    container_name: wine_trainer
+    working_dir: /app
+    volumes:
+      - ./src:/app/src
+      - ./requirements.txt:/app/requirements.txt
+      - wine_artifacts:/artifacts
+    command: >
+      sh -c "pip install --no-cache-dir -r requirements.txt &&
+             python src/model_training.py &&
+             cp -r artifacts/* /artifacts/"
+
+  # Service 2: Serve predictions via FastAPI
+  serving:
+    image: python:3.10-slim
+    container_name: wine_serving
+    working_dir: /app
+    ports:
+      - "8000:8000"
+    environment:
+      - ARTIFACTS_DIR=/artifacts
+      - PORT=8000
+    volumes:
+      - ./src:/app/src
+      - ./src/templates:/app/templates
+      - ./src/statics:/app/statics
+      - ./requirements.txt:/app/requirements.txt
+      - wine_artifacts:/artifacts
+    depends_on:
+      model-training:
+        condition: service_completed_successfully
+    command: >
+      sh -c "pip install --no-cache-dir -r requirements.txt &&
+             cp src/main.py ./main.py &&
+             python main.py"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      start_period: 20s
+      retries: 3
+
+volumes:
+  wine_artifacts:

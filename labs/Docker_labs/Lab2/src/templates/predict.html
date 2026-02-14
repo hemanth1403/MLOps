@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wine Cultivar Classifier</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --wine-deep: #4a0e2e;
+            --wine-red: #8b2252;
+            --gold: #d4a843;
+            --cream: #faf3e0;
+            --glass-bg: rgba(255, 255, 255, 0.06);
+            --glass-border: rgba(255, 255, 255, 0.12);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #1a0a12 0%, #2d1225 40%, #1a0a12 100%);
+            color: #e8ddd3;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: -20%;
+            right: -10%;
+            width: 50%;
+            height: 50%;
+            background: radial-gradient(circle, var(--wine-red), transparent 70%);
+            opacity: 0.15;
+            filter: blur(100px);
+            z-index: 0;
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+            width: 100%;
+            max-width: 480px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 2.5rem;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+        }
+
+        .header { text-align: center; margin-bottom: 2rem; }
+
+        h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 2rem;
+            background: linear-gradient(to right, var(--gold), #f0d78c, var(--gold));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: 1px;
+        }
+
+        .subtitle {
+            color: #9a8a7a;
+            font-size: 0.85rem;
+            margin-top: 0.5rem;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .input-group { margin-bottom: 1.2rem; }
+
+        label {
+            display: block;
+            margin-bottom: 0.4rem;
+            font-size: 0.78rem;
+            color: #a89585;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        input[type="number"] {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.25);
+            border: 1px solid var(--glass-border);
+            color: #fff;
+            padding: 10px 14px;
+            border-radius: 10px;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+        }
+
+        input[type="number"]:focus {
+            outline: none;
+            border-color: var(--gold);
+            box-shadow: 0 0 12px rgba(212, 168, 67, 0.15);
+        }
+
+        .btn-predict {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, var(--wine-red), var(--wine-deep));
+            border: 1px solid rgba(212, 168, 67, 0.3);
+            border-radius: 12px;
+            color: var(--gold);
+            font-family: 'Playfair Display', serif;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 1rem;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .btn-predict:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(139, 34, 82, 0.4);
+            border-color: var(--gold);
+        }
+
+        .btn-predict:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+        /* Result Section */
+        .result-section {
+            display: none;
+            text-align: center;
+            animation: fadeUp 0.5s ease forwards;
+        }
+
+        .result-section.active { display: block; }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .cultivar-name {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.8rem;
+            color: var(--gold);
+            margin: 0.5rem 0;
+        }
+
+        .confidence-badge {
+            display: inline-block;
+            background: rgba(212, 168, 67, 0.1);
+            border: 1px solid rgba(212, 168, 67, 0.3);
+            padding: 6px 18px;
+            border-radius: 50px;
+            color: var(--gold);
+            font-size: 0.8rem;
+            font-weight: 600;
+            letter-spacing: 1px;
+            margin-bottom: 1rem;
+        }
+
+        /* Probability Bars */
+        .prob-bars { margin-top: 1.2rem; text-align: left; }
+
+        .prob-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.6rem;
+            font-size: 0.82rem;
+        }
+
+        .prob-label {
+            width: 80px;
+            color: #a89585;
+            text-transform: capitalize;
+            flex-shrink: 0;
+        }
+
+        .prob-bar-bg {
+            flex: 1;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 0 10px;
+        }
+
+        .prob-bar-fill {
+            height: 100%;
+            border-radius: 4px;
+            background: linear-gradient(90deg, var(--wine-red), var(--gold));
+            transition: width 0.8s ease;
+        }
+
+        .prob-value { width: 50px; text-align: right; color: #c4b5a5; }
+
+        .wine-image-container {
+            margin-top: 1.2rem;
+            border-radius: 14px;
+            overflow: hidden;
+            border: 1px solid var(--glass-border);
+        }
+
+        .wine-image-container img {
+            width: 100%;
+            max-height: 180px;
+            object-fit: cover;
+            display: block;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(212, 168, 67, 0.3);
+            border-radius: 50%;
+            border-top-color: var(--gold);
+            animation: spin 0.8s linear infinite;
+            vertical-align: middle;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .sample-btn {
+            display: inline-block;
+            background: transparent;
+            border: 1px solid var(--glass-border);
+            color: #a89585;
+            padding: 4px 12px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            margin-top: 0.5rem;
+            transition: all 0.2s;
+        }
+        .sample-btn:hover { border-color: var(--gold); color: var(--gold); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <div class="header">
+                <h1>Wine Cultivar Classifier</h1>
+                <p class="subtitle">PyTorch Neural Network</p>
+            </div>
+
+            <form id="predictionForm">
+                <div class="input-group">
+                    <label for="alcohol">Alcohol</label>
+                    <input type="number" id="alcohol" name="alcohol" step="0.01" placeholder="e.g. 13.0" required>
+                </div>
+                <div class="input-group">
+                    <label for="malic_acid">Malic Acid</label>
+                    <input type="number" id="malic_acid" name="malic_acid" step="0.01" placeholder="e.g. 2.0" required>
+                </div>
+                <div class="input-group">
+                    <label for="ash">Ash</label>
+                    <input type="number" id="ash" name="ash" step="0.01" placeholder="e.g. 2.3" required>
+                </div>
+                <div class="input-group">
+                    <label for="alcalinity_of_ash">Alcalinity of Ash</label>
+                    <input type="number" id="alcalinity_of_ash" name="alcalinity_of_ash" step="0.01" placeholder="e.g. 19.0" required>
+                </div>
+                <div class="input-group">
+                    <label for="magnesium">Magnesium</label>
+                    <input type="number" id="magnesium" name="magnesium" step="0.01" placeholder="e.g. 100" required>
+                </div>
+                <div class="input-group">
+                    <label for="total_phenols">Total Phenols</label>
+                    <input type="number" id="total_phenols" name="total_phenols" step="0.01" placeholder="e.g. 2.5" required>
+                </div>
+                <div class="input-group">
+                    <label for="flavanoids">Flavanoids</label>
+                    <input type="number" id="flavanoids" name="flavanoids" step="0.01" placeholder="e.g. 2.8" required>
+                </div>
+                <div class="input-group">
+                    <label for="nonflavanoid_phenols">Nonflavanoid Phenols</label>
+                    <input type="number" id="nonflavanoid_phenols" name="nonflavanoid_phenols" step="0.01" placeholder="e.g. 0.3" required>
+                </div>
+                <div class="input-group">
+                    <label for="proanthocyanins">Proanthocyanins</label>
+                    <input type="number" id="proanthocyanins" name="proanthocyanins" step="0.01" placeholder="e.g. 1.9" required>
+                </div>
+                <div class="input-group">
+                    <label for="color_intensity">Color Intensity</label>
+                    <input type="number" id="color_intensity" name="color_intensity" step="0.01" placeholder="e.g. 5.0" required>
+                </div>
+                <div class="input-group">
+                    <label for="hue">Hue</label>
+                    <input type="number" id="hue" name="hue" step="0.01" placeholder="e.g. 1.0" required>
+                </div>
+                <div class="input-group">
+                    <label for="od280/od315_of_diluted_wines">OD280/OD315</label>
+                    <input type="number" id="od280" name="od280/od315_of_diluted_wines" step="0.01" placeholder="e.g. 3.0" required>
+                </div>
+                <div class="input-group">
+                    <label for="proline">Proline</label>
+                    <input type="number" id="proline" name="proline" step="0.01" placeholder="e.g. 1000" required>
+                </div>
+
+                <button type="button" class="sample-btn" onclick="fillSample()">Fill sample values</button>
+                <button type="submit" class="btn-predict" id="predictBtn">Classify Wine</button>
+            </form>
+        </div>
+
+        <div id="resultSection" class="card result-section">
+            <div class="confidence-badge" id="confidenceBadge">CONFIDENCE: —</div>
+            <h2 class="cultivar-name" id="cultivarName"></h2>
+
+            <div class="prob-bars" id="probBars"></div>
+
+            <div class="wine-image-container">
+                <img id="wineImage" src="" alt="Wine Cultivar" />
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const FEATURE_IDS = [
+            'alcohol', 'malic_acid', 'ash', 'alcalinity_of_ash', 'magnesium',
+            'total_phenols', 'flavanoids', 'nonflavanoid_phenols', 'proanthocyanins',
+            'color_intensity', 'hue', 'od280', 'proline'
+        ];
+
+        const FEATURE_NAMES = [
+            'alcohol', 'malic_acid', 'ash', 'alcalinity_of_ash', 'magnesium',
+            'total_phenols', 'flavanoids', 'nonflavanoid_phenols', 'proanthocyanins',
+            'color_intensity', 'hue', 'od280/od315_of_diluted_wines', 'proline'
+        ];
+
+        // Sample values (class_0 / cultivar 1 wine)
+        const SAMPLE = [14.23, 1.71, 2.43, 15.6, 127, 2.80, 3.06, 0.28, 2.29, 5.64, 1.04, 3.92, 1065];
+
+        const WINE_IMAGES = {
+            'class_0': '/statics/wine_class0.jpg',
+            'class_1': '/statics/wine_class1.jpg',
+            'class_2': '/statics/wine_class2.jpg'
+        };
+
+        function fillSample() {
+            FEATURE_IDS.forEach((id, i) => {
+                document.getElementById(id).value = SAMPLE[i];
+            });
+        }
+
+        document.getElementById('predictionForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const btn = document.getElementById('predictBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> Analyzing...';
+
+            const formData = new FormData();
+            FEATURE_IDS.forEach((id, i) => {
+                formData.append(FEATURE_NAMES[i], document.getElementById(id).value);
+            });
+
+            try {
+                const resp = await fetch('/predict', { method: 'POST', body: formData });
+                const data = await resp.json();
+
+                if (data.error) {
+                    alert('Error: ' + data.error);
+                    return;
+                }
+
+                // Update cultivar name
+                document.getElementById('cultivarName').textContent =
+                    data.predicted_class.replace('class_', 'Cultivar ');
+
+                // Update confidence
+                document.getElementById('confidenceBadge').textContent =
+                    'CONFIDENCE: ' + data.confidence.toFixed(1) + '%';
+
+                // Update probability bars
+                const barsHtml = Object.entries(data.probabilities).map(([name, prob]) => `
+                    <div class="prob-row">
+                        <span class="prob-label">${name.replace('class_', 'Cultivar ')}</span>
+                        <div class="prob-bar-bg">
+                            <div class="prob-bar-fill" style="width: ${prob}%"></div>
+                        </div>
+                        <span class="prob-value">${prob.toFixed(1)}%</span>
+                    </div>
+                `).join('');
+                document.getElementById('probBars').innerHTML = barsHtml;
+
+                // Update image
+                const imgKey = data.predicted_class;
+                document.getElementById('wineImage').src = WINE_IMAGES[imgKey] || '';
+
+                // Show result
+                document.getElementById('resultSection').classList.add('active');
+
+            } catch (err) {
+                alert('Connection error: ' + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = 'Classify Wine';
+            }
+        });
+    </script>
+</body>
+</html>
