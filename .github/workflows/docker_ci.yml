@@ -31,10 +31,10 @@ jobs:
 
       - name: Build Docker image
         run: |
-          echo "🔨 Building Docker image..."
+          echo "Building Docker image..."
           docker build -t ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }} .
           docker tag ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }} ${{ env.IMAGE_NAME }}:latest
-          echo "✅ Image built successfully"
+          echo "Image built successfully"
 
       - name: Start container
         run: |
