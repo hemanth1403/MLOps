@@ -16,7 +16,7 @@ import os
 from datetime import datetime
 
 
-# ─── Model Definition (must match training) ────────────────────────────
+# Model Definition [must match training] 
 class WineClassifierNet(nn.Module):
     def __init__(self, input_dim, hidden_dim, num_classes, dropout_rate=0.3):
         super(WineClassifierNet, self).__init__()
@@ -36,7 +36,7 @@ class WineClassifierNet(nn.Module):
         return self.network(x)
 
 
-# ─── Load Artifacts ────────────────────────────────────────────────────
+# Load Artifacts 
 ARTIFACTS_DIR = os.environ.get("ARTIFACTS_DIR", "artifacts")
 
 checkpoint = torch.load(
@@ -65,7 +65,7 @@ TARGET_NAMES = checkpoint["target_names"]
 print(f"[INFO] Model loaded — classes: {TARGET_NAMES}")
 print(f"[INFO] Training accuracy: {training_metrics['accuracy']:.4f}")
 
-# ─── FastAPI App ───────────────────────────────────────────────────────
+#  FastAPI App 
 app = FastAPI(
     title="Wine Quality Classifier API",
     description="Predict wine cultivar from physicochemical properties",

@@ -160,9 +160,9 @@ def evaluate_model(model, X_test, y_test, target_names):
 
 
 if __name__ == "__main__":
-    print("=" * 60)
+
     print("  Wine Quality Classifier — PyTorch Training Pipeline")
-    print("=" * 60)
+
 
     # Load and preprocess
     X_train, X_val, X_test, y_train, y_val, y_test, scaler, feature_names, target_names = \
@@ -212,6 +212,5 @@ if __name__ == "__main__":
     print(f"  - wine_model.pth (model weights)")
     print(f"  - scaler.pkl (feature scaler)")
     print(f"  - metrics.json (evaluation results)")
-    print("=" * 60)
     print("  Training pipeline completed successfully!")
-    print("=" * 60)
+
