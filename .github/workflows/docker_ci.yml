@@ -18,7 +18,7 @@ env:
   IMAGE_TAG: ${{ github.sha }}
 
 jobs:
-  # ─── Job 1: Build and Test ─────────────────────────────────
+  #  Job 1: Build and Test
   build-and-test:
     runs-on: ubuntu-latest
     defaults:
@@ -43,7 +43,7 @@ jobs:
         run: |
           echo "Starting container..."
           docker run -d --name wine-test -p 8000:8000 ${{ env.IMAGE_NAME }}:latest
-          echo "⏳ Waiting for server to start..."
+          echo "Waiting for server to start..."
           sleep 15
 
       - name: Check container is running
@@ -58,7 +58,7 @@ jobs:
 
       - name: Test health endpoint
         run: |
-          echo "🏥 Testing /health endpoint..."
+          echo "Testing /health endpoint..."
           RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/health)
           if [ "$RESPONSE" != "200" ]; then
             echo "Health check failed with status: $RESPONSE"
@@ -73,7 +73,7 @@ jobs:
           echo "Testing /metrics endpoint..."
           RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/metrics)
           if [ "$RESPONSE" != "200" ]; then
-            echo "❌ Metrics endpoint failed with status: $RESPONSE"
+            echo "Metrics endpoint failed with status: $RESPONSE"
             exit 1
           fi
           echo "Metrics endpoint returned 200"
@@ -101,7 +101,7 @@ jobs:
 
       - name: Test home page
         run: |
-          echo "🌐 Testing home page..."
+          echo "Testing home page..."
           RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/)
           if [ "$RESPONSE" != "200" ]; then
             echo "Home page failed with status: $RESPONSE"
@@ -132,10 +132,10 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: docker-image
-          path: wine-classifier-image.tar.gz
+          path: labs/Docker_labs/Lab2/wine-classifier-image.tar.gz
           retention-days: 7
 
-  # ─── Job 2: Push to Docker Hub (optional, on main only) ───
+  #  Job 2: Push to Docker Hub
   push-to-registry:
     needs: build-and-test
     runs-on: ubuntu-latest
