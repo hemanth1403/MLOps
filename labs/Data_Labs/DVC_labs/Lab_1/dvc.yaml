@@ -1,0 +1,46 @@
+stages:
+  preprocess:
+    cmd: python src/preprocess.py
+    deps:
+    - src/preprocess.py
+    - data/raw/heart_disease.csv
+    params:
+    - data.test_split
+    - data.random_seed
+    - preprocessing
+    outs:
+    - data/processed/X_train.csv
+    - data/processed/X_test.csv
+    - data/processed/y_train.csv
+    - data/processed/y_test.csv
+    - data/processed/scaler.joblib
+
+  train:
+    cmd: python src/train.py
+    deps:
+    - src/train.py
+    - data/processed/X_train.csv
+    - data/processed/y_train.csv
+    params:
+    - train
+    outs:
+    - models/model.joblib
+
+  evaluate:
+    cmd: python src/evaluate.py
+    deps:
+    - src/evaluate.py
+    - models/model.joblib
+    - data/processed/X_test.csv
+    - data/processed/y_test.csv
+    params:
+    - train.model_type
+    - evaluate
+    metrics:
+    - metrics/eval_metrics.json:
+        cache: false
+    plots:
+    - metrics/confusion_matrix.png:
+        cache: false
+    - metrics/feature_importance.png:
+        cache: false

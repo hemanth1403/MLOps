@@ -1,0 +1,30 @@
+# DVC
+/data/raw/*.csv
+/data/processed/
+/models/
+*.joblib
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+venv/
+.venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# GCP credentials - NEVER commit these
+*.json
+!metrics/eval_metrics.json
+
+# Plots tracked by DVC
+/metrics/confusion_matrix.png
+/metrics/feature_importance.png

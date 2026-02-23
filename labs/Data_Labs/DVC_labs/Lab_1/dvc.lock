@@ -1,0 +1,125 @@
+schema: '2.0'
+stages:
+  preprocess:
+    cmd: python src/preprocess.py
+    deps:
+    - path: data/raw/heart_disease.csv
+      hash: md5
+      md5: 2744ef493e047265d1bd7f750a6aefa3
+      size: 21622
+    - path: src/preprocess.py
+      hash: md5
+      md5: aca92039e88aba813faca7b1a09c7d6e
+      size: 3816
+    params:
+      params.yaml:
+        data.random_seed: 42
+        data.test_split: 0.2
+        preprocessing:
+          scaler_type: standard
+          missing_strategy: median
+          poly_features: false
+          poly_degree: 2
+    outs:
+    - path: data/processed/X_test.csv
+      hash: md5
+      md5: bb261159eb7ecde55c6df03a532bcbd5
+      size: 18134
+    - path: data/processed/X_train.csv
+      hash: md5
+      md5: e714e44b8e36942866fe9823d2ada6ca
+      size: 71775
+    - path: data/processed/scaler.joblib
+      hash: md5
+      md5: 6bd0d8f207bd7b64169e80db4ea3cf23
+      size: 1263
+    - path: data/processed/y_test.csv
+      hash: md5
+      md5: 2dbc3a358dc92846c4ac78e94d2069b4
+      size: 149
+    - path: data/processed/y_train.csv
+      hash: md5
+      md5: 72b1bfa598b9eb4a8662b15f760039a3
+      size: 571
+  train:
+    cmd: python src/train.py
+    deps:
+    - path: data/processed/X_train.csv
+      hash: md5
+      md5: e714e44b8e36942866fe9823d2ada6ca
+      size: 71775
+    - path: data/processed/y_train.csv
+      hash: md5
+      md5: 72b1bfa598b9eb4a8662b15f760039a3
+      size: 571
+    - path: src/train.py
+      hash: md5
+      md5: 38e9a616fefd13f895de748ed5f87fbd
+      size: 3300
+    params:
+      params.yaml:
+        train:
+          model_type: gradient_boosting
+          random_seed: 42
+          random_forest:
+            n_estimators: 150
+            max_depth: 10
+            min_samples_split: 5
+            min_samples_leaf: 2
+            class_weight: balanced
+          gradient_boosting:
+            n_estimators: 200
+            max_depth: 5
+            learning_rate: 0.1
+            subsample: 0.8
+          logistic_regression:
+            C: 1.0
+            max_iter: 1000
+            solver: lbfgs
+    outs:
+    - path: models/model.joblib
+      hash: md5
+      md5: a15cefde087dc6a51976080b2c0e2bac
+      size: 768296
+  evaluate:
+    cmd: python src/evaluate.py
+    deps:
+    - path: data/processed/X_test.csv
+      hash: md5
+      md5: bb261159eb7ecde55c6df03a532bcbd5
+      size: 18134
+    - path: data/processed/y_test.csv
+      hash: md5
+      md5: 2dbc3a358dc92846c4ac78e94d2069b4
+      size: 149
+    - path: models/model.joblib
+      hash: md5
+      md5: a15cefde087dc6a51976080b2c0e2bac
+      size: 768296
+    - path: src/evaluate.py
+      hash: md5
+      md5: 3fbc6b9f392283fc0b8e3917fba62afb
+      size: 4227
+    params:
+      params.yaml:
+        evaluate:
+          metrics:
+          - accuracy
+          - precision
+          - recall
+          - f1
+          - roc_auc
+        train.model_type: gradient_boosting
+    outs:
+    - path: metrics/confusion_matrix.png
+      hash: md5
+      md5: a0d9bd6c8ea3934e4fa4ccb094bd9967
+      size: 39743
+    - path: metrics/eval_metrics.json
+      hash: md5
+      md5: 0cdd87c06112f8cdc9d3d301c35e0ba9
+      size: 196
+    - path: metrics/feature_importance.png
+      hash: md5
+      md5: 54809dfe664edb248f71e0ba8ff97418
+      size: 44211

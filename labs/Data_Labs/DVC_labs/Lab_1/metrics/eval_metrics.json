@@ -1,0 +1,10 @@
+{
+  "accuracy": 0.7746,
+  "precision": 0.7576,
+  "recall": 0.7576,
+  "f1_score": 0.7576,
+  "roc_auc": 0.8413,
+  "model_type": "gradient_boosting",
+  "test_samples": 71,
+  "positive_rate": 0.4648
+}
