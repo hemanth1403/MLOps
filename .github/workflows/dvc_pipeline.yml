@@ -6,8 +6,16 @@ name: DVC Pipeline CI
 on:
   push:
     branches: [Main]
+    paths:
+      - "labs/Data_Labs/DVC_Labs/Lab_1/**"
   pull_request:
     branches: [Main]
+    paths:
+      - "labs/Data_Labs/DVC_Labs/Lab_1/**"
+
+defaults:
+  run:
+    working-directory: labs/Data_Labs/DVC_Labs/Lab_1
 
 jobs:
   run-pipeline:
@@ -21,19 +29,18 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-          cache: "pip"
 
       - name: Install dependencies
         run: |
           python -m venv venv
           source venv/bin/activate
           pip install --upgrade pip
-          pip install -r labs/Data_Labs/DVC_labs/Lab_1/requirements.txt
+          pip install -r requirements.txt
 
       - name: Initialize DVC
         run: |
           source venv/bin/activate
-          dvc init --no-scm || true
+          dvc init --subdir || true
           mkdir -p /tmp/dvc-ci-remote
           dvc remote add -d ci_storage /tmp/dvc-ci-remote
 
@@ -45,7 +52,7 @@ jobs:
       - name: Show metrics
         run: |
           source venv/bin/activate
-          echo "Model Metrics"
+          echo "=== Model Metrics ==="
           dvc metrics show
           cat metrics/eval_metrics.json
 
@@ -69,10 +76,10 @@ jobs:
         with:
           name: dvc-pipeline-results
           path: |
-            metrics/eval_metrics.json
-            metrics/confusion_matrix.png
-            metrics/feature_importance.png
-            models/model.joblib
+            labs/Data_Labs/DVC_Labs/Lab_1/metrics/eval_metrics.json
+            labs/Data_Labs/DVC_Labs/Lab_1/metrics/confusion_matrix.png
+            labs/Data_Labs/DVC_Labs/Lab_1/metrics/feature_importance.png
+            labs/Data_Labs/DVC_Labs/Lab_1/models/model.joblib
           retention-days: 30
 
       - name: Upload DVC lock file
@@ -80,5 +87,5 @@ jobs:
         if: always()
         with:
           name: dvc-lock
-          path: dvc.lock
+          path: labs/Data_Labs/DVC_Labs/Lab_1/dvc.lock
           retention-days: 30
