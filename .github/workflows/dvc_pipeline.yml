@@ -1,0 +1,84 @@
+# DVC Pipeline CI/CD
+# Runs the full DVC pipeline on every push, validates metrics, and uploads artifacts.
+
+name: DVC Pipeline CI
+
+on:
+  push:
+    branches: [Main]
+  pull_request:
+    branches: [Main]
+
+jobs:
+  run-pipeline:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m venv venv
+          source venv/bin/activate
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Initialize DVC
+        run: |
+          source venv/bin/activate
+          dvc init --no-scm || true
+          mkdir -p /tmp/dvc-ci-remote
+          dvc remote add -d ci_storage /tmp/dvc-ci-remote
+
+      - name: Run DVC pipeline
+        run: |
+          source venv/bin/activate
+          dvc repro
+
+      - name: Show metrics
+        run: |
+          source venv/bin/activate
+          echo "Model Metrics"
+          dvc metrics show
+          cat metrics/eval_metrics.json
+
+      - name: Validate model performance
+        run: |
+          source venv/bin/activate
+          python -c "
+          import json
+          with open('metrics/eval_metrics.json') as f:
+              m = json.load(f)
+          print(f'Accuracy: {m[\"accuracy\"]}')
+          print(f'F1 Score: {m[\"f1_score\"]}')
+          assert m['accuracy'] >= 0.70, f'Accuracy {m[\"accuracy\"]} below 0.70 threshold'
+          assert m['f1_score'] >= 0.65, f'F1 {m[\"f1_score\"]} below 0.65 threshold'
+          print('All metric thresholds passed!')
+          "
+
+      - name: Upload pipeline artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: dvc-pipeline-results
+          path: |
+            metrics/eval_metrics.json
+            metrics/confusion_matrix.png
+            metrics/feature_importance.png
+            models/model.joblib
+          retention-days: 30
+
+      - name: Upload DVC lock file
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: dvc-lock
+          path: dvc.lock
+          retention-days: 30
