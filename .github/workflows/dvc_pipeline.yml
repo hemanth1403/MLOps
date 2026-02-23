@@ -6,16 +6,8 @@ name: DVC Pipeline CI
 on:
   push:
     branches: [Main]
-    paths:
-      - "labs/Data_Labs/DVC_Labs/Lab_1/**"
   pull_request:
     branches: [Main]
-    paths:
-      - "labs/Data_Labs/DVC_Labs/Lab_1/**"
-
-defaults:
-  run:
-    working-directory: labs/Data_Labs/DVC_Labs/Lab_1
 
 jobs:
   run-pipeline:
