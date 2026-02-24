@@ -1,46 +1,55 @@
 stages:
+  download:
+    cmd: python src/download_data.py
+    deps:
+      - src/download_data.py
+    params:
+      - data.source_url
+      - data.raw_path
+    outs:
+      - data/raw/heart_disease.csv
   preprocess:
     cmd: python src/preprocess.py
     deps:
-    - src/preprocess.py
-    - data/raw/heart_disease.csv
+      - src/preprocess.py
+      - data/raw/heart_disease.csv
     params:
-    - data.test_split
-    - data.random_seed
-    - preprocessing
+      - data.test_split
+      - data.random_seed
+      - preprocessing
     outs:
-    - data/processed/X_train.csv
-    - data/processed/X_test.csv
-    - data/processed/y_train.csv
-    - data/processed/y_test.csv
-    - data/processed/scaler.joblib
+      - data/processed/X_train.csv
+      - data/processed/X_test.csv
+      - data/processed/y_train.csv
+      - data/processed/y_test.csv
+      - data/processed/scaler.joblib
 
   train:
     cmd: python src/train.py
     deps:
-    - src/train.py
-    - data/processed/X_train.csv
-    - data/processed/y_train.csv
+      - src/train.py
+      - data/processed/X_train.csv
+      - data/processed/y_train.csv
     params:
-    - train
+      - train
     outs:
-    - models/model.joblib
+      - models/model.joblib
 
   evaluate:
     cmd: python src/evaluate.py
     deps:
-    - src/evaluate.py
-    - models/model.joblib
-    - data/processed/X_test.csv
-    - data/processed/y_test.csv
+      - src/evaluate.py
+      - models/model.joblib
+      - data/processed/X_test.csv
+      - data/processed/y_test.csv
     params:
-    - train.model_type
-    - evaluate
+      - train.model_type
+      - evaluate
     metrics:
-    - metrics/eval_metrics.json:
-        cache: false
+      - metrics/eval_metrics.json:
+          cache: false
     plots:
-    - metrics/confusion_matrix.png:
-        cache: false
-    - metrics/feature_importance.png:
-        cache: false
+      - metrics/confusion_matrix.png:
+          cache: false
+      - metrics/feature_importance.png:
+          cache: false
