@@ -27,7 +27,7 @@ jobs:
           python -m venv venv
           source venv/bin/activate
           pip install --upgrade pip
-          pip install -r requirements.txt
+          pip install -r labs/Data_Labs/DVC_Labs/Lab_1/requirements.txt
 
       - name: Initialize DVC
         run: |
@@ -44,7 +44,7 @@ jobs:
       - name: Show metrics
         run: |
           source venv/bin/activate
-          echo "=== Model Metrics ==="
+          echo " Model Metrics"
           dvc metrics show
           cat metrics/eval_metrics.json
 
