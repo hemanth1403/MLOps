@@ -1,5 +1,0 @@
-outs:
-- md5: 2744ef493e047265d1bd7f750a6aefa3
-  size: 21622
-  hash: md5
-  path: heart_disease.csv
