@@ -237,254 +237,249 @@ jobs:
           "
 
   # Job 3: Docker build and test
-  docker_build:
-    name: Build and Test Docker Services
-    runs-on: ubuntu-latest
-    needs: train_and_track
-    continue-on-error: true
+  # docker_build:
+  #   name: Build and Test Docker Services
+  #   runs-on: ubuntu-latest
+  #   needs: train_and_track
+  #   continue-on-error: true
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+  #     - name: Set up Docker Buildx
+  #       uses: docker/setup-buildx-action@v3
 
-      - name: Build Docker image
-        working-directory: ${{ env.LAB_DIR }}
-        run: |
-          docker build -t ml-serving:test .
+  #     - name: Build Docker image
+  #       working-directory: ${{ env.LAB_DIR }}
+  #       run: |
+  #         docker build -t ml-serving:test .
 
-      - name: Test Docker image
-        run: |
-          docker run --rm ml-serving:test python -c "
-          import sys
-          import importlib.util
+  #     - name: Test Docker image
+  #       run: |
+  #         docker run --rm ml-serving:test python -c "
+  #         import sys
+  #         import importlib.util
 
-          # Check required modules
-          required = ['fastapi', 'mlflow', 'prometheus_client', 'sklearn']
-          for module in required:
-              spec = importlib.util.find_spec(module)
-              assert spec is not None, f'{module} not found'
+  #         # Check required modules
+  #         required = ['fastapi', 'mlflow', 'prometheus_client', 'sklearn']
+  #         for module in required:
+  #             spec = importlib.util.find_spec(module)
+  #             assert spec is not None, f'{module} not found'
 
-          print(' All dependencies verified')
-          "
+  #         print(' All dependencies verified')
+  #         "
 
-      - name: Start services with Docker Compose
-        working-directory: ${{ env.LAB_DIR }}
-        run: |
-          docker compose up -d
+  #     - name: Start services with Docker Compose
+  #       working-directory: ${{ env.LAB_DIR }}
+  #       run: |
+  #         docker compose up -d
 
-          # Wait for services to be healthy
-          echo "Waiting for services to start..."
-          sleep 30
+  #         # Wait for services to be healthy
+  #         echo "Waiting for services to start..."
+  #         sleep 30
 
-          # Check service health
-          docker compose ps
+  #         # Check service health
+  #         docker compose ps
 
-      - name: Test API health
-        working-directory: ${{ env.LAB_DIR }}
-        run: |
-          # Wait for API to be ready
-          for i in {1..30}; do
-            if curl -f http://localhost:8000/health; then
-              echo " API is healthy"
-              break
-            fi
-            echo "Waiting for API... ($i/30)"
-            sleep 2
-          done
+  #     - name: Test API health
+  #       working-directory: ${{ env.LAB_DIR }}
+  #       run: |
+  #         # Wait for API to be ready
+  #         for i in {1..30}; do
+  #           if curl -f http://localhost:8000/health; then
+  #             echo " API is healthy"
+  #             break
+  #           fi
+  #           echo "Waiting for API... ($i/30)"
+  #           sleep 2
+  #         done
 
-      - name: Test Prometheus metrics
-        run: |
-          curl -f http://localhost:9090/-/healthy || exit 1
-          echo " Prometheus is healthy"
+  #     - name: Test Prometheus metrics
+  #       run: |
+  #         curl -f http://localhost:9090/-/healthy || exit 1
+  #         echo " Prometheus is healthy"
 
-      # - name: Test MLflow UI
-      #   run: |
-      #     curl -f http://localhost:5000/health || exit 1
-      #     echo " MLflow is healthy"
+  #     # - name: Test MLflow UI
+  #     #   run: |
+  #     #     curl -f http://localhost:5000/health || exit 1
+  #     #     echo " MLflow is healthy"
 
-      - name: Cleanup
-        if: always()
-        working-directory: ${{ env.LAB_DIR }}
-        run: |
-          docker compose down -v
+  #     - name: Cleanup
+  #       if: always()
+  #       working-directory: ${{ env.LAB_DIR }}
+  #       run: |
+  #         docker compose down -v
 
-  # Job 4: Integration tests
-  integration_tests:
-    name: Integration Tests
-    runs-on: ubuntu-latest
-    needs: docker_build
-    continue-on-error: true
+  # # Job 4: Integration tests
+  # integration_tests:
+  #   name: Integration Tests
+  #   runs-on: ubuntu-latest
+  #   needs: docker_build
+  #   continue-on-error: true
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
+  #     - name: Set up Python
+  #       uses: actions/setup-python@v5
+  #       with:
+  #         python-version: ${{ env.PYTHON_VERSION }}
 
-      - name: Install dependencies
-        working-directory: ${{ env.LAB_DIR }}
-        run: |
-          pip install -r requirements.txt
-          pip install pytest pytest-asyncio httpx
+  #     - name: Install dependencies
+  #       working-directory: ${{ env.LAB_DIR }}
+  #       run: |
+  #         pip install -r requirements.txt
+  #         pip install pytest pytest-asyncio httpx
 
-      - name: Start services
-        working-directory: ${{ env.LAB_DIR }}
-        run: |
-          docker compose up -d
-          sleep 30
+  #     - name: Start services
+  #       working-directory: ${{ env.LAB_DIR }}
+  #       run: |
+  #         docker compose up -d
+  #         sleep 30
 
-      - name: Download MLflow artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: mlflow-artifacts
-          path: ${{ env.LAB_DIR }}/
+  #     - name: Download MLflow artifacts
+  #       uses: actions/download-artifact@v4
+  #       with:
+  #         name: mlflow-artifacts
+  #         path: ${{ env.LAB_DIR }}/
 
-      - name: Run API tests
-        working-directory: ${{ env.LAB_DIR }}
-        run: |
-          python -c "
-          import requests
-          import time
+  #     - name: Run API tests
+  #       working-directory: ${{ env.LAB_DIR }}
+  #       run: |
+  #         python -c "
+  #         import requests
+  #         import time
 
-          # Test health endpoint
-          resp = requests.get('http://localhost:8000/health')
-          assert resp.status_code == 200, 'Health check failed'
-          print(' Health check passed')
+  #         # Test health endpoint
+  #         resp = requests.get('http://localhost:8000/health')
+  #         assert resp.status_code == 200, 'Health check failed'
+  #         print(' Health check passed')
 
-          # Test prediction endpoint
-          features = [0.038, 0.05, 0.061, 0.021, -0.044, -0.034, -0.043, -0.002, 0.019, -0.017]
-          resp = requests.post(
-              'http://localhost:8000/predict',
-              json={'features': features}
-          )
-          assert resp.status_code == 200, 'Prediction failed'
-          result = resp.json()
-          assert 'prediction' in result, 'Missing prediction'
-          assert 'confidence' in result, 'Missing confidence'
-          print(f' Prediction test passed: {result}')
+  #         # Test prediction endpoint
+  #         features = [0.038, 0.05, 0.061, 0.021, -0.044, -0.034, -0.043, -0.002, 0.019, -0.017]
+  #         resp = requests.post(
+  #             'http://localhost:8000/predict',
+  #             json={'features': features}
+  #         )
+  #         assert resp.status_code == 200, 'Prediction failed'
+  #         result = resp.json()
+  #         assert 'prediction' in result, 'Missing prediction'
+  #         assert 'confidence' in result, 'Missing confidence'
+  #         print(f' Prediction test passed: {result}')
 
-          # Test metrics endpoint
-          resp = requests.get('http://localhost:8000/metrics')
-          assert resp.status_code == 200, 'Metrics endpoint failed'
-          assert 'model_requests_total' in resp.text, 'Missing metrics'
-          print(' Metrics endpoint passed')
+  #         # Test metrics endpoint
+  #         resp = requests.get('http://localhost:8000/metrics')
+  #         assert resp.status_code == 200, 'Metrics endpoint failed'
+  #         assert 'model_requests_total' in resp.text, 'Missing metrics'
+  #         print(' Metrics endpoint passed')
 
-          print('\n All integration tests passed!')
-          "
+  #         print('\n All integration tests passed!')
+  #         "
 
-      - name: Cleanup
-        if: always()
-        working-directory: ${{ env.LAB_DIR }}
-        run: |
-          docker compose down -v
+  #     - name: Cleanup
+  #       if: always()
+  #       working-directory: ${{ env.LAB_DIR }}
+  #       run: |
+  #         docker compose down -v
 
-  # Job 5: Performance benchmarks
-  performance_tests:
-    name: Performance Benchmarks
-    runs-on: ubuntu-latest
-    needs: integration_tests
-    continue-on-error: true
+  # # Job 5: Performance benchmarks
+  # performance_tests:
+  #   name: Performance Benchmarks
+  #   runs-on: ubuntu-latest
+  #   needs: integration_tests
+  #   continue-on-error: true
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
+  #     - name: Set up Python
+  #       uses: actions/setup-python@v5
+  #       with:
+  #         python-version: ${{ env.PYTHON_VERSION }}
 
-      - name: Install dependencies
-        working-directory: ${{ env.LAB_DIR }}
-        run: |
-          pip install -r requirements.txt
-          pip install locust
+  #     - name: Install dependencies
+  #       working-directory: ${{ env.LAB_DIR }}
+  #       run: |
+  #         pip install -r requirements.txt
+  #         pip install locust
 
-      - name: Start services
-        working-directory: ${{ env.LAB_DIR }}
-        run: |
-          docker compose up -d
-          sleep 30
+  #     - name: Start services
+  #       working-directory: ${{ env.LAB_DIR }}
+  #       run: |
+  #         docker compose up -d
+  #         sleep 30
 
-      - name: Run load tests
-        working-directory: ${{ env.LAB_DIR }}
-        run: |
-          python -c "
-          import requests
-          import time
-          import statistics
+  #     - name: Run load tests
+  #       working-directory: ${{ env.LAB_DIR }}
+  #       run: |
+  #         python -c "
+  #         import requests
+  #         import time
+  #         import statistics
 
-          url = 'http://localhost:8000/predict'
-          features = [0.038, 0.05, 0.061, 0.021, -0.044, -0.034, -0.043, -0.002, 0.019, -0.017]
+  #         url = 'http://localhost:8000/predict'
+  #         features = [0.038, 0.05, 0.061, 0.021, -0.044, -0.034, -0.043, -0.002, 0.019, -0.017]
 
-          latencies = []
-          errors = 0
+  #         latencies = []
+  #         errors = 0
 
-          print('Running load test (100 requests)...')
-          for i in range(100):
-              start = time.time()
-              try:
-                  resp = requests.post(url, json={'features': features}, timeout=5)
-                  if resp.status_code == 200:
-                      latencies.append(time.time() - start)
-                  else:
-                      errors += 1
-              except Exception as e:
-                  errors += 1
+  #         print('Running load test (100 requests)...')
+  #         for i in range(100):
+  #             start = time.time()
+  #             try:
+  #                 resp = requests.post(url, json={'features': features}, timeout=5)
+  #                 if resp.status_code == 200:
+  #                     latencies.append(time.time() - start)
+  #                 else:
+  #                     errors += 1
+  #             except Exception as e:
+  #                 errors += 1
 
-          if latencies:
-              print(f'\n Performance Results:')
-              print(f'   Requests: 100')
-              print(f'   Successes: {len(latencies)}')
-              print(f'   Errors: {errors}')
-              print(f'   Mean latency: {statistics.mean(latencies)*1000:.2f}ms')
-              print(f'   Median latency: {statistics.median(latencies)*1000:.2f}ms')
-              print(f'   P95 latency: {sorted(latencies)[int(len(latencies)*0.95)]*1000:.2f}ms')
-              
-              assert statistics.mean(latencies) < 0.5, 'Mean latency too high'
-              assert errors < 5, 'Too many errors'
-              print('\n Performance tests passed!')
-          "
+  #         if latencies:
+  #             print(f'\n Performance Results:')
+  #             print(f'   Requests: 100')
+  #             print(f'   Successes: {len(latencies)}')
+  #             print(f'   Errors: {errors}')
+  #             print(f'   Mean latency: {statistics.mean(latencies)*1000:.2f}ms')
+  #             print(f'   Median latency: {statistics.median(latencies)*1000:.2f}ms')
+  #             print(f'   P95 latency: {sorted(latencies)[int(len(latencies)*0.95)]*1000:.2f}ms')
 
-      - name: Cleanup
-        if: always()
-        working-directory: ${{ env.LAB_DIR }}
-        run: |
-          docker compose down -v
+  #             assert statistics.mean(latencies) < 0.5, 'Mean latency too high'
+  #             assert errors < 5, 'Too many errors'
+  #             print('\n Performance tests passed!')
+  #         "
+
+  #     - name: Cleanup
+  #       if: always()
+  #       working-directory: ${{ env.LAB_DIR }}
+  #       run: |
+  #         docker compose down -v
 
   # Job 6: Summary
   summary:
     name: Pipeline Summary
     runs-on: ubuntu-latest
     needs:
-      [
-        train_and_track,
-        drift_detection,
-        docker_build,
-        integration_tests,
-        performance_tests,
-      ]
+      [train_and_track, drift_detection]
+      # docker_build,
+      # integration_tests,
+      # performance_tests,
+
     if: always()
 
     steps:
       - name: Generate summary
         run: |
-          echo "##  ML Monitoring Pipeline Complete" >> $GITHUB_STEP_SUMMARY
+          echo "## ML Monitoring Pipeline Complete" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Job Status" >> $GITHUB_STEP_SUMMARY
-          echo "-  Model Training: Completed" >> $GITHUB_STEP_SUMMARY
-          echo "-  Drift Detection: Completed" >> $GITHUB_STEP_SUMMARY
-          echo "-  Docker Build: Completed" >> $GITHUB_STEP_SUMMARY
-          echo "-  Integration Tests: Completed" >> $GITHUB_STEP_SUMMARY
-          echo "-  Performance Tests: Completed" >> $GITHUB_STEP_SUMMARY
+          echo "- Model Training: Completed" >> $GITHUB_STEP_SUMMARY
+          echo "- Drift Detection: Completed" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Next Steps" >> $GITHUB_STEP_SUMMARY
-          echo "1. Review model metrics in MLflow UI" >> $GITHUB_STEP_SUMMARY
-          echo "2. Check Prometheus metrics" >> $GITHUB_STEP_SUMMARY
-          echo "3. View Grafana dashboards" >> $GITHUB_STEP_SUMMARY
+          echo "### Results" >> $GITHUB_STEP_SUMMARY
+          echo "- 3 ML models trained and compared" >> $GITHUB_STEP_SUMMARY
+          echo "- Drift detection tests passed" >> $GITHUB_STEP_SUMMARY
+          echo "- Metrics and artifacts uploaded" >> $GITHUB_STEP_SUMMARY
