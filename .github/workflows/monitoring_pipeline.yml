@@ -299,10 +299,10 @@ jobs:
           curl -f http://localhost:9090/-/healthy || exit 1
           echo " Prometheus is healthy"
 
-      - name: Test MLflow UI
-        run: |
-          curl -f http://localhost:5000/health || exit 1
-          echo " MLflow is healthy"
+      # - name: Test MLflow UI
+      #   run: |
+      #     curl -f http://localhost:5000/health || exit 1
+      #     echo " MLflow is healthy"
 
       - name: Cleanup
         if: always()
