@@ -50,7 +50,21 @@ logger = logging.getLogger(__name__)
 class MLflowExperimentTracker:
     """Handles MLflow experiment tracking and artifact logging"""
     
-    def __init__(self, experiment_name: str, tracking_uri: str = "http://127.0.0.1:5001"):
+    # def __init__(self, experiment_name: str, tracking_uri: str = "http://127.0.0.1:5001"):
+    #     """
+    #     Initialize MLflow tracker
+        
+    #     Args:
+    #         experiment_name: Name of the MLflow experiment
+    #         tracking_uri: MLflow tracking server URI
+    #     """
+    #     self.experiment_name = experiment_name
+    #     mlflow.set_tracking_uri(tracking_uri)
+    #     mlflow.set_experiment(experiment_name)
+    #     logger.info(f"MLflow experiment set: {experiment_name}")
+    #     logger.info(f"Tracking URI: {tracking_uri}")
+
+    def __init__(self, experiment_name: str, tracking_uri: str = None):
         """
         Initialize MLflow tracker
         
@@ -59,6 +73,11 @@ class MLflowExperimentTracker:
             tracking_uri: MLflow tracking server URI
         """
         self.experiment_name = experiment_name
+        
+        # Use environment variable or default
+        if tracking_uri is None:
+            tracking_uri = os.getenv("MLFLOW_TRACKING_URI", "http://127.0.0.1:5001")
+        
         mlflow.set_tracking_uri(tracking_uri)
         mlflow.set_experiment(experiment_name)
         logger.info(f"MLflow experiment set: {experiment_name}")
