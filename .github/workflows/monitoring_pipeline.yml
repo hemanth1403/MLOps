@@ -15,7 +15,7 @@ on:
 
 env:
   PYTHON_VERSION: "3.9"
-  LAB_DIR: "labs/Experiment_tracking_labs/Mlflow_Labs/Lab2"
+  LAB_DIR: "labs/Experiment_Tracking_Labs/Mlflow_Labs/Lab2"
 
 jobs:
   # Job 1: Train models and track experiments
