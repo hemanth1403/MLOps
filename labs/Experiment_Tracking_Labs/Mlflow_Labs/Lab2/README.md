@@ -540,7 +540,7 @@ This lab includes automated testing via GitHub Actions. The workflow:
 
 ## Credits
 
-**Author:** Hemanth Sai Mada  
+**Author:** Hemanth Sai Madadapu  
 **Course:** IE7374 - MLOps  
 **Institution:** Northeastern University
 
