@@ -4,18 +4,18 @@ on:
   push:
     branches: [Main, develop]
     paths:
-      - "labs/Experiment_tracking_labs/Mlflow_labs/Lab2/**"
+      - "labs/Experiment_tracking_labs/Mlflow_Labs/Lab2/**"
   pull_request:
     branches: [Main]
     paths:
-      - "labs/Experiment_tracking_labs/Mlflow_labs/Lab2/**"
+      - "labs/Experiment_tracking_labs/Mlflow_Labs/Lab2/**"
   workflow_dispatch: # Allow manual triggering
   schedule:
     - cron: "0 */6 * * *" # Run every 6 hours
 
 env:
   PYTHON_VERSION: "3.9"
-  LAB_DIR: "labs/Experiment_tracking_labs/Mlflow_labs/Lab2"
+  LAB_DIR: "labs/Experiment_tracking_labs/Mlflow_Labs/Lab2"
 
 jobs:
   # Job 1: Train models and track experiments
