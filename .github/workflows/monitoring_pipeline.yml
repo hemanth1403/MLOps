@@ -3,12 +3,12 @@ name: ML Monitoring Pipeline
 on:
   push:
     branches: [Main, develop]
-    paths:
-      - "labs/Experiment_tracking_labs/Mlflow_Labs/Lab2/**"
+    # paths:
+    #   - "labs/Experiment_tracking_labs/Mlflow_Labs/Lab2/**"
   pull_request:
     branches: [Main]
-    paths:
-      - "labs/Experiment_tracking_labs/Mlflow_Labs/Lab2/**"
+    # paths:
+    #   - "labs/Experiment_tracking_labs/Mlflow_Labs/Lab2/**"
   workflow_dispatch: # Allow manual triggering
   schedule:
     - cron: "0 */6 * * *" # Run every 6 hours
