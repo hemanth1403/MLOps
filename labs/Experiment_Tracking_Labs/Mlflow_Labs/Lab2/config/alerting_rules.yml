@@ -1,0 +1,94 @@
+groups:
+  - name: ml_model_alerts
+    interval: 30s
+    rules:
+      # Alert if model accuracy drops significantly
+      - alert: ModelAccuracyDrop
+        expr: model_accuracy < 0.7
+        for: 5m
+        labels:
+          severity: warning
+          category: model_performance
+        annotations:
+          summary: "Model accuracy has dropped below 70%"
+          description: "Model {{ $labels.model_version }} accuracy is {{ $value | humanizePercentage }}. Consider retraining."
+
+      # Alert if prediction latency is too high
+      - alert: HighPredictionLatency
+        expr: histogram_quantile(0.95, rate(model_prediction_latency_seconds_bucket[5m])) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          category: performance
+        annotations:
+          summary: "High prediction latency detected"
+          description: "95th percentile latency is {{ $value | humanizeDuration }} for model {{ $labels.model_version }}"
+
+      # Alert if error rate is too high
+      - alert: HighErrorRate
+        expr: rate(model_errors_total[5m]) > 0.01
+        for: 3m
+        labels:
+          severity: critical
+          category: reliability
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is {{ $value | humanize }} errors/sec. Check logs immediately."
+
+      # Alert if no requests for extended period
+      - alert: NoModelRequests
+        expr: rate(model_requests_total[10m]) == 0
+        for: 15m
+        labels:
+          severity: info
+          category: availability
+        annotations:
+          summary: "No prediction requests received"
+          description: "Model {{ $labels.model_version }} has not received requests for 15 minutes"
+
+      # Alert if too many active requests (potential overload)
+      - alert: HighActiveRequests
+        expr: active_requests > 100
+        for: 2m
+        labels:
+          severity: warning
+          category: capacity
+        annotations:
+          summary: "High number of concurrent requests"
+          description: "{{ $value }} concurrent requests. Consider scaling up."
+
+      # Alert if low prediction confidence
+      - alert: LowPredictionConfidence
+        expr: histogram_quantile(0.50, rate(prediction_confidence_bucket[5m])) < 0.6
+        for: 10m
+        labels:
+          severity: info
+          category: model_quality
+        annotations:
+          summary: "Low prediction confidence detected"
+          description: "Median prediction confidence is {{ $value | humanizePercentage }}. Model may need retraining."
+
+  - name: system_alerts
+    interval: 30s
+    rules:
+      # Alert if service is down
+      - alert: ServiceDown
+        expr: up == 0
+        for: 2m
+        labels:
+          severity: critical
+          category: availability
+        annotations:
+          summary: "Service {{ $labels.job }} is down"
+          description: "{{ $labels.instance }} of job {{ $labels.job }} has been down for more than 2 minutes."
+
+      # Alert if scrape duration is too long
+      - alert: SlowScrape
+        expr: scrape_duration_seconds > 5
+        for: 5m
+        labels:
+          severity: warning
+          category: performance
+        annotations:
+          summary: "Slow metrics scrape"
+          description: "Scraping {{ $labels.job }} is taking {{ $value | humanizeDuration }}"

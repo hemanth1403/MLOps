@@ -1,0 +1,287 @@
+# version: '3.8'
+
+# services:
+#   # PostgreSQL database for MLflow backend
+#   # postgres:
+#   #   image: postgres:15-alpine
+#   #   container_name: mlflow_postgres
+#   #   environment:
+#   #     POSTGRES_USER: mlflow
+#   #     POSTGRES_PASSWORD: mlflow
+#   #     POSTGRES_DB: mlflow
+#   #   volumes:
+#   #     - postgres_data:/var/lib/postgresql/data
+#   #   ports:
+#   #     - "5432:5432"
+#   #   healthcheck:
+#   #     test: ["CMD-SHELL", "pg_isready -U mlflow"]
+#   #     interval: 10s
+#   #     timeout: 5s
+#   #     retries: 5
+#   #   networks:
+#   #     - ml_network
+
+#   # MLflow tracking server
+#   # mlflow:
+#   #   image: ghcr.io/mlflow/mlflow:v2.9.2
+#   #   container_name: mlflow_server
+#   #   command: >
+#   #     mlflow server
+#   #     --backend-store-uri postgresql://mlflow:mlflow@postgres:5432/mlflow
+#   #     --default-artifact-root /mlflow/artifacts
+#   #     --host 0.0.0.0
+#   #     --port 5000
+#   #   environment:
+#   #     - MLFLOW_TRACKING_URI=http://mlflow:5000
+#   #   volumes:
+#   #     - mlflow_artifacts:/mlflow/artifacts
+#   #   ports:
+#   #     - "5001:5000"
+#   #   depends_on:
+#   #     postgres:
+#   #       condition: service_healthy
+#   #   healthcheck:
+#   #     test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+#   #     interval: 30s
+#   #     timeout: 10s
+#   #     retries: 3
+#   #     start_period: 40s
+#   #   networks:
+#   #     - ml_network
+#   mlflow:
+#     image: ghcr.io/mlflow/mlflow:v2.9.2
+#     container_name: mlflow_server
+#     user: root
+#     command: >
+#       mlflow server
+#       --backend-store-uri sqlite:////mlflow/mlflow.db
+#       --default-artifact-root /mlflow/artifacts
+#       --host 0.0.0.0
+#       --port 5000
+#     volumes:
+#       - ./mlflow_data:/mlflow
+#     ports:
+#       - "5001:5000"
+#     networks:
+#       - ml_network
+#     restart: unless-stopped
+
+#   # Prometheus monitoring
+#   prometheus:
+#     image: prom/prometheus:v2.48.1
+#     container_name: prometheus_server
+#     command:
+#       - '--config.file=/etc/prometheus/prometheus.yml'
+#       - '--storage.tsdb.path=/prometheus'
+#       - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+#       - '--web.console.templates=/usr/share/prometheus/consoles'
+#       - '--web.enable-lifecycle'
+#     volumes:
+#       - ./config/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+#       - ./config/alerting_rules.yml:/etc/prometheus/alerting_rules.yml:ro
+#       - prometheus_data:/prometheus
+#     ports:
+#       - "9090:9090"
+#     networks:
+#       - ml_network
+#     restart: unless-stopped
+
+#   # Grafana dashboards
+#   grafana:
+#     image: grafana/grafana:10.2.3
+#     container_name: grafana_server
+#     environment:
+#       - GF_SECURITY_ADMIN_USER=admin
+#       - GF_SECURITY_ADMIN_PASSWORD=admin
+#       - GF_USERS_ALLOW_SIGN_UP=false
+#       - GF_SERVER_ROOT_URL=http://localhost:3000
+#       - GF_INSTALL_PLUGINS=grafana-piechart-panel
+#     volumes:
+#       - grafana_data:/var/lib/grafana
+#       - ./config/grafana_dashboards:/etc/grafana/provisioning/dashboards:ro
+#       - ./config/grafana_datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
+#     ports:
+#       - "3000:3000"
+#     depends_on:
+#       - prometheus
+#     networks:
+#       - ml_network
+#     restart: unless-stopped
+
+#   # ML serving API
+#   ml_api:
+#     build:
+#       context: .
+#       dockerfile: Dockerfile
+#     container_name: ml_serving_api
+#     environment:
+#       - MLFLOW_TRACKING_URI=http://mlflow:5001
+#       - PROMETHEUS_MULTIPROC_DIR=/tmp/prometheus_metrics
+#     volumes:
+#       - ./src:/app/src:ro
+#       - model_cache:/app/model_cache
+#     ports:
+#       - "8000:8000"
+#     # depends_on:
+#     #   mlflow:
+#     #     condition: service_healthy
+#     healthcheck:
+#       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+#       interval: 30s
+#       timeout: 10s
+#       retries: 3
+#       start_period: 30s
+#     networks:
+#       - ml_network
+#     restart: unless-stopped
+
+#   # Alertmanager (optional - for advanced alerting)
+#   alertmanager:
+#     image: prom/alertmanager:v0.26.0
+#     container_name: alertmanager
+#     command:
+#       - '--config.file=/etc/alertmanager/config.yml'
+#       - '--storage.path=/alertmanager'
+#     volumes:
+#       - ./config/alertmanager.yml:/etc/alertmanager/config.yml:ro
+#       - alertmanager_data:/alertmanager
+#     ports:
+#       - "9093:9093"
+#     networks:
+#       - ml_network
+#     restart: unless-stopped
+
+# volumes:
+#   # postgres_data:
+#   #   driver: local
+#   mlflow_data:            
+#     driver: local
+#   # mlflow_artifacts:
+#   #   driver: local
+#   # mlflow_db:              
+#   #   driver: local
+#   prometheus_data:
+#     driver: local
+#   grafana_data:
+#     driver: local
+#   alertmanager_data:
+#     driver: local
+#   model_cache:
+#     driver: local
+
+# networks:
+#   ml_network:
+#     driver: bridge
+#     ipam:
+#       config:
+#         - subnet: 172.28.0.0/16
+
+
+
+
+######################################################
+
+
+
+
+version: '3.8'
+
+services:
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v2.9.2
+    container_name: mlflow_server
+    user: root
+    command: >
+      mlflow server
+      --backend-store-uri sqlite:////mlflow/mlflow.db
+      --default-artifact-root /mlflow/artifacts
+      --host 0.0.0.0
+      --port 5000
+    volumes:
+      - mlflow_data:/mlflow:rw
+    ports:
+      - "5001:5000"
+    networks:
+      - ml_network
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:v2.48.1
+    container_name: prometheus_server
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.enable-lifecycle'
+    volumes:
+      - ./config/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./config/alerting_rules.yml:/etc/prometheus/alerting_rules.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    networks:
+      - ml_network
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:10.2.3
+    container_name: grafana_server
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./config/grafana_datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+    networks:
+      - ml_network
+    restart: unless-stopped
+
+  ml_api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ml_serving_api
+    environment:
+      - MLFLOW_TRACKING_URI=http://host.docker.internal:5001    # FIXED: Changed from 5001 to 5000
+      - PROMETHEUS_MULTIPROC_DIR=/tmp/prometheus_metrics
+    volumes:
+      - ./src:/app/src:ro
+    ports:
+      - "8000:8000"
+    networks:
+      - ml_network
+    restart: unless-stopped
+
+  alertmanager:
+    image: prom/alertmanager:v0.26.0
+    container_name: alertmanager
+    command:
+      - '--config.file=/etc/alertmanager/config.yml'
+      - '--storage.path=/alertmanager'
+    volumes:
+      - ./config/alertmanager.yml:/etc/alertmanager/config.yml:ro
+      - alertmanager_data:/alertmanager
+    ports:
+      - "9093:9093"
+    networks:
+      - ml_network
+    restart: unless-stopped
+
+volumes:
+  # mlflow_data is NOT here because we're using bind mount
+  mlflow_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+  alertmanager_data:
+    driver: local
+
+networks:
+  ml_network:
+    driver: bridge

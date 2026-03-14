@@ -1,0 +1,88 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# MLflow
+mlruns/
+mlflow.db
+mlflow.db-*
+
+# Logs
+*.log
+logs/
+
+# Data
+*.csv
+*.pkl
+*.joblib
+data/
+
+# Docker
+.dockerignore
+
+# Prometheus
+prometheus_data/
+
+# Grafana
+grafana_data/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# Coverage
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Model artifacts
+models/
+*.pkl
+*.h5
+*.onnx
+
+# Metrics
+/tmp/
+
+# Config overrides
+config/local_*.yml
