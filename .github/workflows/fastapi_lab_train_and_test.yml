@@ -12,7 +12,7 @@ on:
 
   pull_request:
     branches:
-      - main
+      - Main
     paths:
       - "labs/API_Labs/FastAPI_Lab/**"
 

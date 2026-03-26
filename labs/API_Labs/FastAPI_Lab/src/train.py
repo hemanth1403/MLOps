@@ -1,9 +1,13 @@
 import json
+import os
 import joblib
 import numpy as np
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_squared_error, r2_score
 from data import load_data, split_data
+
+MODEL_DIR = os.path.join(os.path.dirname(__file__), "..", "model")
+os.makedirs(MODEL_DIR, exist_ok=True)
 
 
 def fit_model(X_train, y_train):
