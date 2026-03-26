@@ -9,3 +9,5 @@ models/*.joblib
 metrics/*.png
 metrics/*.json
 __pycache__/
+.claire/
+.claude/

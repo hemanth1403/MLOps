@@ -1,0 +1,103 @@
+name: FastAPI Lab - Train and Test
+
+run-name: "FastAPI Lab: Train RandomForest + Run Pytest"
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "labs/API_Labs/FastAPI_Lab/**"
+      - ".github/workflows/fastapi_lab_train_and_test.yml"
+
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "labs/API_Labs/FastAPI_Lab/**"
+
+  workflow_dispatch:   # allow manual runs from the GitHub UI
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Job 1 — Train the Random Forest Regressor and upload the model artifact
+  # ---------------------------------------------------------------------------
+  train:
+    name: Train Model
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r labs/API_Labs/FastAPI_Lab/requirements.txt
+
+      - name: Train Random Forest Regressor
+        working-directory: labs/API_Labs/FastAPI_Lab/src
+        run: python train.py
+
+      - name: Display evaluation metrics
+        run: cat labs/API_Labs/FastAPI_Lab/model/metrics.json
+
+      - name: Upload model artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: diabetes-model
+          path: |
+            labs/API_Labs/FastAPI_Lab/model/diabetes_model.pkl
+            labs/API_Labs/FastAPI_Lab/model/metrics.json
+          retention-days: 7
+
+  # ---------------------------------------------------------------------------
+  # Job 2 — Run pytest against the FastAPI app (depends on the trained model)
+  # ---------------------------------------------------------------------------
+  test:
+    name: Run Pytest
+    runs-on: ubuntu-latest
+    needs: train   # wait for the trained model before running tests
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r labs/API_Labs/FastAPI_Lab/requirements.txt
+
+      - name: Download trained model artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: diabetes-model
+          path: labs/API_Labs/FastAPI_Lab/model/
+
+      - name: Run tests and generate XML report
+        run: |
+          pytest labs/API_Labs/FastAPI_Lab/tests/test_api.py \
+            --junitxml=pytest-report.xml \
+            -v
+        continue-on-error: false
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pytest-results
+          path: pytest-report.xml
+
+      - name: Notify on success
+        if: success()
+        run: echo "All tests passed successfully!"
+
+      - name: Notify on failure
+        if: failure()
+        run: echo "Tests failed — check the pytest report artifact."
