@@ -1,0 +1,13 @@
+model/
+logs/
+__pycache__/
+*.pyc
+.venv/
+venv/
+env/
+*.egg-info/
+dist/
+build/
+pytest-report.xml
+.pytest_cache/
+USER_GUIDE.md

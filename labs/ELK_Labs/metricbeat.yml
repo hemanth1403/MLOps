@@ -1,0 +1,32 @@
+metricbeat.modules:
+  - module: elasticsearch
+    xpack.enabled: true
+    period: 10s
+    hosts: ["http://elasticsearch:9200"]
+
+  - module: logstash
+    xpack.enabled: true
+    period: 10s
+    hosts: ["http://logstash:9600"]
+
+  - module: kibana
+    xpack.enabled: true
+    period: 10s
+    hosts: ["http://kibana:5601"]
+
+  - module: docker
+    metricsets: ["container", "cpu", "diskio", "memory", "network"]
+    hosts: ["unix:///var/run/docker.sock"]
+    period: 10s
+
+processors:
+  - add_host_metadata: ~
+  - add_docker_metadata: ~
+
+output.elasticsearch:
+  hosts: ["http://elasticsearch:9200"]
+
+setup.kibana:
+  host: "http://kibana:5601"
+
+logging.level: warning

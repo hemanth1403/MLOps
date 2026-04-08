@@ -1,0 +1,211 @@
+name: ELK Lab — Train, Test, Docker
+
+run-name: "ELK Lab: Train RandomForest -> Pytest -> Docker build"
+
+on:
+  push:
+    branches: [Main]
+    paths:
+      - "labs/ELK_Labs/**"
+      - ".github/workflows/elk_lab_ci.yml"
+  pull_request:
+    branches: [Main]
+    paths:
+      - "labs/ELK_Labs/**"
+  workflow_dispatch:
+
+jobs:
+  # Job 1: Train the Random Forest and save model artifacts
+  train:
+    name: Train Model
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: labs/ELK_Labs
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Train Random Forest on wine recognition dataset
+        run: python src/train.py
+
+      - name: Display training metrics
+        run: cat model/metrics.json
+
+      - name: Validate accuracy threshold (≥ 90%)
+        run: |
+          python3 - <<'EOF'
+          import json, sys
+          m = json.load(open("model/metrics.json"))
+          acc = m["accuracy"]
+          print(f"Accuracy: {acc}")
+          if acc < 0.90:
+              print(f"FAIL: accuracy {acc} is below 0.90 threshold")
+              sys.exit(1)
+          print("PASS: accuracy meets threshold")
+          EOF
+
+      - name: Upload model artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: wine-elk-model
+          path: |
+            labs/ELK_Labs/model/wine_model.pkl
+            labs/ELK_Labs/model/scaler.pkl
+            labs/ELK_Labs/model/baseline.pkl
+            labs/ELK_Labs/model/metrics.json
+          retention-days: 7
+
+  #  Job 2: Run pytest against the FastAPI app
+  test:
+    name: Run API Tests
+    runs-on: ubuntu-latest
+    needs: train
+    defaults:
+      run:
+        working-directory: labs/ELK_Labs
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Download trained model artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: wine-elk-model
+          path: labs/ELK_Labs/model/
+
+      - name: Run pytest
+        run: |
+          pytest tests/test_api.py \
+            --junitxml=pytest-report.xml \
+            -v
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pytest-results
+          path: labs/ELK_Labs/pytest-report.xml
+          retention-days: 7
+
+  #  Job 3: Build Docker image and smoke-test the API container
+  docker-build:
+    name: Docker Build & Smoke Test
+    runs-on: ubuntu-latest
+    needs: test
+    defaults:
+      run:
+        working-directory: labs/ELK_Labs
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build API Docker image
+        run: |
+          docker build -t wine-elk-api:${{ github.sha }} .
+          docker tag wine-elk-api:${{ github.sha }} wine-elk-api:latest
+
+      - name: Start API container
+        run: |
+          docker run -d \
+            --name wine-elk-api-test \
+            -p 8000:8000 \
+            wine-elk-api:latest
+
+      - name: Wait for API to be ready
+        run: |
+          echo "Polling /health..."
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:8000/health > /dev/null 2>&1; then
+              echo "API is ready after $((i * 3)) seconds"
+              break
+            fi
+            echo "Attempt $i/30 — retrying in 3s..."
+            sleep 3
+          done
+          curl -sf http://localhost:8000/health || (docker logs wine-elk-api-test && exit 1)
+
+      - name: Smoke test — health endpoint
+        run: |
+          RESPONSE=$(curl -s http://localhost:8000/health)
+          echo "$RESPONSE"
+          echo "$RESPONSE" | python3 -c "
+          import sys, json
+          d = json.load(sys.stdin)
+          assert d['status'] == 'ok', f'Unexpected status: {d}'
+          assert d['model_loaded'] is True, 'Model not loaded'
+          print('health check passed')
+          "
+
+      - name: Smoke test — model-info endpoint
+        run: |
+          RESPONSE=$(curl -s http://localhost:8000/model-info)
+          echo "$RESPONSE"
+          echo "$RESPONSE" | python3 -c "
+          import sys, json
+          d = json.load(sys.stdin)
+          assert 'accuracy' in d
+          assert 'feature_names' in d
+          print(f'model: {d[\"model_type\"]}, accuracy: {d[\"accuracy\"]}')
+          "
+
+      - name: Smoke test — predict endpoint
+        run: |
+          RESPONSE=$(curl -s -X POST http://localhost:8000/predict \
+            -H "Content-Type: application/json" \
+            -d '{"features": [13.20,1.78,2.14,11.2,100.0,2.65,2.76,0.26,1.28,4.38,1.05,3.40,1050.0]}')
+          echo "$RESPONSE"
+          echo "$RESPONSE" | python3 -c "
+          import sys, json
+          d = json.load(sys.stdin)
+          assert 'prediction' in d
+          assert 'confidence' in d
+          assert 0.0 <= d['confidence'] <= 1.0
+          assert abs(sum(d['probabilities']) - 1.0) < 1e-3
+          print(f'prediction: {d[\"class_name\"]} (confidence: {d[\"confidence\"]})')
+          "
+
+      - name: Print container logs
+        if: always()
+        run: docker logs wine-elk-api-test
+
+      - name: Cleanup
+        if: always()
+        run: |
+          docker stop wine-elk-api-test || true
+          docker rm wine-elk-api-test || true
+
+      - name: Save Docker image artifact
+        if: github.ref == 'refs/heads/Main' && github.event_name == 'push'
+        run: |
+          docker save wine-elk-api:latest | gzip > wine-elk-api.tar.gz
+
+      - name: Upload Docker image artifact
+        if: github.ref == 'refs/heads/Main' && github.event_name == 'push'
+        uses: actions/upload-artifact@v4
+        with:
+          name: wine-elk-docker-image
+          path: labs/ELK_Labs/wine-elk-api.tar.gz
+          retention-days: 7

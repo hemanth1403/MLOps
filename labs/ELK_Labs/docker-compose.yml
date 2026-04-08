@@ -1,0 +1,94 @@
+# Services:
+#   elasticsearch  — search + storage backend
+#   logstash       — ingests training / api / drift logs into ES
+#   kibana         — visualisation UI at http://localhost:5601
+#   metricbeat     — infra metrics (ES, Logstash, Kibana, Docker)
+#   api            — FastAPI model server + drift detector at http://localhost:8000
+
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.9
+    environment:
+      - discovery.type=single-node
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+      - xpack.security.enabled=false
+      - xpack.ml.enabled=false
+    ports:
+      - "9200:9200"
+    volumes:
+      - elastic_data:/usr/share/elasticsearch/data
+    networks:
+      - elk
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9200/_cluster/health || exit 1"]
+      interval: 20s
+      timeout: 10s
+      retries: 10
+
+  logstash:
+    build:
+      context: .
+      dockerfile: Dockerfile.logstash
+    volumes:
+      - logs_data:/app/logs
+    environment:
+      - ELASTICSEARCH_HOST=elasticsearch:9200
+      - LS_JAVA_OPTS=-Xms256m -Xmx256m
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    networks:
+      - elk
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:7.17.9
+    ports:
+      - "5601:5601"
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - xpack.security.enabled=false
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    networks:
+      - elk
+
+  metricbeat:
+    image: docker.elastic.co/beats/metricbeat:7.17.9
+    user: root
+    command: metricbeat -e -strict.perms=false
+    volumes:
+      - ./metricbeat.yml:/usr/share/metricbeat/metricbeat.yml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    networks:
+      - elk
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - logs_data:/app/logs
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    networks:
+      - elk
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8000/health || exit 1"]
+      interval: 20s
+      timeout: 10s
+      retries: 5
+
+volumes:
+  elastic_data:
+  logs_data:
+
+networks:
+  elk:
+    driver: bridge
