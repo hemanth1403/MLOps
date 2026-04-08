@@ -10,4 +10,5 @@ metrics/*.png
 metrics/*.json
 __pycache__/
 .claire/
+CLAUDE.md
 .claude/
